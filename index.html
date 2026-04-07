@@ -834,18 +834,29 @@
     }
 
     async function enviarAsistencia(payload) {
-      const response = await fetch(ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: JSON.stringify(payload)
-      });
+      let response;
+      let data;
 
-      const data = await response.json();
+      try {
+        response = await fetch(ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        throw new Error("Error al enviar. Verifica tu conexion e intenta nuevamente.");
+      }
+
+      try {
+        data = await response.json();
+      } catch (error) {
+        throw new Error("No se pudo procesar la respuesta del servidor. Intenta nuevamente.");
+      }
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "No fue posible guardar la asistencia.");
+        throw new Error(data.message || "Error al enviar. Verifica tu conexion e intenta nuevamente.");
       }
 
       return data;
