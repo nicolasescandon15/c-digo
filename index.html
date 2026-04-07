@@ -572,7 +572,9 @@
     const infoModal = document.getElementById("infoModal");
     const infoModalMessage = document.getElementById("infoModalMessage");
     const cerrarInfoModalBtn = document.getElementById("cerrarInfoModalBtn");
+    const enviarBtnTextoOriginal = enviarBtn.textContent;
     let modalTimer = null;
+    let isSubmitting = false;
 
     function obtenerFechaLocalActual() {
       const ahora = new Date();
@@ -938,6 +940,10 @@
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
+      if (isSubmitting) {
+        return;
+      }
+
       if (ENDPOINT === "PEGAR_AQUI_URL_DE_GOOGLE_APPS_SCRIPT") {
         mostrarEstado("Pega la URL del Web App de Google Apps Script antes de enviar.", "error");
         return;
@@ -947,8 +953,10 @@
         const payload = leerFormulario();
         validarFormulario(payload);
 
+        isSubmitting = true;
         enviarBtn.disabled = true;
         agregarFilaBtn.disabled = true;
+        enviarBtn.textContent = "Enviando...";
         mostrarEstado("Enviando asistencia...", "");
 
         await enviarAsistencia(payload);
@@ -970,10 +978,20 @@
         } else {
           mostrarEstado("", "");
         }
-      } finally {
+
+        isSubmitting = false;
         enviarBtn.disabled = false;
         agregarFilaBtn.disabled = false;
+        enviarBtn.textContent = enviarBtnTextoOriginal;
+        return;
       }
+
+      setTimeout(() => {
+        isSubmitting = false;
+        enviarBtn.disabled = false;
+        agregarFilaBtn.disabled = false;
+        enviarBtn.textContent = enviarBtnTextoOriginal;
+      }, 1200);
     });
 
 
