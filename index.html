@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asistencia Diaria</title>
+  <style>
+    :root {
+      --bg: #f4efe5;
+      --card: #fffaf2;
+      --line: #d7c7ab;
+      --text: #2d2418;
+      --muted: #6f624f;
+      --accent: #b55d24;
+      --accent-dark: #8c4518;
+      --ok: #25684f;
+      --error: #a0362a;
+      --shadow: 0 18px 40px rgba(79, 52, 29, 0.12);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      position: relative;
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(181, 93, 36, 0.18), transparent 26%),
+        linear-gradient(180deg, #f7f1e8 0%, var(--bg) 100%);
+      min-height: 100vh;
+      isolation: isolate;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url("./fondo-fem.jpeg");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(960px, calc(100% - 24px));
+      margin: 24px auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(183, 152, 112, 0.35);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 24px 20px 18px;
+      background: linear-gradient(135deg, #2f5d50 0%, #9a4e22 100%);
+      color: #fff8ef;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+      line-height: 1.1;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255, 248, 239, 0.9);
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input:focus,
+    select:focus {
+      outline: 2px solid rgba(181, 93, 36, 0.2);
+      border-color: var(--accent);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 6px 0 12px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .hint {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .table {
+      display: grid;
+      gap: 10px;
+    }
+
+    .table-head,
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(130px, 1fr) 52px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .table-head {
+      padding: 0 4px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .row {
+      padding: 12px;
+      border: 1px solid rgba(183, 152, 112, 0.35);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .icon-btn,
+    .primary-btn,
+    .secondary-btn {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+
+    .icon-btn:hover,
+    .primary-btn:hover,
+    .secondary-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .secondary-btn {
+      min-height: 44px;
+      padding: 0 16px;
+      background: #efe2cf;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .primary-btn {
+      width: 100%;
+      min-height: 50px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      margin-top: 18px;
+    }
+
+    .primary-btn:hover {
+      background: var(--accent-dark);
+    }
+
+    .primary-btn:disabled,
+    .secondary-btn:disabled,
+    .icon-btn:disabled {
+      opacity: 0.65;
+      cursor: wait;
+      transform: none;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      background: #f7e5dc;
+      color: var(--error);
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .row:first-child .icon-btn {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 14px;
+    }
+
+    .section-title .primary-btn {
+      width: auto;
+      min-width: 190px;
+      margin-top: 0;
+      padding: 0 18px;
+    }
+
+    .actions .secondary-btn {
+      width: 100%;
+      min-height: 50px;
+      justify-content: center;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+        .row-field {
+          position: relative;
+        }
+
+        .sugerencias {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          right: 0;
+          z-index: 20;
+          margin: 0;
+          padding: 6px 0;
+          list-style: none;
+          border: 1px solid var(--line);
+          border-radius: 12px;
+          background: #fffdf9;
+          box-shadow: 0 14px 28px rgba(55, 35, 20, 0.14);
+          max-height: 220px;
+          overflow-y: auto;
+        }
+
+        .sugerencias[hidden] {
+          display: none;
+        }
+
+        .sugerencia-item {
+          padding: 10px 12px;
+          cursor: pointer;
+        }
+
+        .sugerencia-item:hover {
+          background: #f6ecde;
+        }
+
+
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.error {
+      color: var(--error);
+    }
+
+    @media (max-width: 720px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .section-title .primary-btn {
+        width: 100%;
+      }
+
+      .table-head {
+        display: none;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .row-field::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+
+      .icon-btn {
+        width: 100%;
+      }
+
+      .row:first-child .icon-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <header class="hero">
+        <h1>Registro Diario de Asistencia</h1>
+        <p>Control simple para obra, optimizado para registrar entradas desde el celular.</p>
+      </header>
+
+      <div class="content">
+        <form id="asistenciaForm">
+          <div class="grid">
+            <div>
+              <label for="ordenCompra">Orden de compra</label>
+              <input id="ordenCompra" name="ordenCompra" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ej:1024" required>
+            </div>
+
+            <div>
+              <label for="obra">Nombre de la obra</label>
+              <input id="obra" name="obra" type="text" placeholder="Ej: Colgate" required>
+            </div>
+
+            <div>
+              <label for="fecha">Día</label>
+              <input id="fecha" name="fecha" type="date" required>
+            </div>
+
+            <div>
+              <label for="horaEntrada">Hora de entrada</label>
+              <input id="horaEntrada" name="horaEntrada" type="time" required>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>Trabajadores</h2>
+            <button class="primary-btn" id="enviarBtn" type="submit">Enviar asistencia</button>
+          </div>
+
+          <p class="hint">Selecciona cada trabajador y registra su hora de llegada.</p>
+
+          <div class="table" id="tablaTrabajadores">
+            <div class="table-head">
+              <div>Trabajador</div>
+              <div>Hora de llegada</div>
+              <div>Quitar</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="secondary-btn" id="agregarFilaBtn" type="button">+ Agregar fila</button>
+          </div>
+          <p class="status" id="statusMsg"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbwDxuGHV1oz7jgiVXmNNLccJk_7X6hdbWKQZ2PWBymcSWyVkhileOezAQQhZJZe11Ow/exec";
+    let trabajadoresDisponibles = [];
+
+    async function cargarTrabajadores() {
+  const response = await fetch(ENDPOINT);
+  const data = await response.json();
+
+  console.log("Respuesta doGet:", data);
+
+  if (!response.ok || !data.ok) {
+    throw new Error(data.message || "No fue posible cargar la lista de trabajadores.");
+  }
+
+  trabajadoresDisponibles = Array.isArray(data.trabajadores) ? data.trabajadores : [];
+  console.log("Trabajadores cargados:", trabajadoresDisponibles);
+}
+
+
+    const form = document.getElementById("asistenciaForm");
+    const tablaTrabajadores = document.getElementById("tablaTrabajadores");
+    const agregarFilaBtn = document.getElementById("agregarFilaBtn");
+    const enviarBtn = document.getElementById("enviarBtn");
+    const statusMsg = document.getElementById("statusMsg");
+    const fechaInput = document.getElementById("fecha");
+    const horaEntradaInput = document.getElementById("horaEntrada");
+    const ordenCompraInput = document.getElementById("ordenCompra");
+
+    function obtenerFechaLocalActual() {
+      const ahora = new Date();
+      const year = ahora.getFullYear();
+      const month = String(ahora.getMonth() + 1).padStart(2, "0");
+      const day = String(ahora.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    fechaInput.value = obtenerFechaLocalActual();
+
+    ordenCompraInput.addEventListener("input", () => {
+      ordenCompraInput.value = ordenCompraInput.value.replace(/\D/g, "");
+    });
+
+    function crearFila() {
+      const row = document.createElement("div");
+      row.className = "row";
+
+      row.innerHTML = [
+      '<div class="row-field" data-label="Trabajador">',
+      '  <input class="trabajador" type="text" placeholder="Escribe el nombre" autocomplete="off" required>',
+      '  <ul class="sugerencias" hidden></ul>',
+      "</div>",
+      '<div class="row-field" data-label="Hora de llegada">',
+      '  <input class="hora" type="time" required>',
+      "</div>",
+      '<button class="icon-btn eliminarFilaBtn" type="button" aria-label="Eliminar fila">×</button>'
+    ].join("");
+
+
+      tablaTrabajadores.appendChild(row);
+    }
+
+    function obtenerFilas() {
+      return Array.from(tablaTrabajadores.querySelectorAll(".row"));
+    }
+
+
+    function obtenerCoincidencias(valor) {
+      const busqueda = valor.trim().toLowerCase();
+
+      if (!busqueda) {
+        return [];
+      }
+
+      return trabajadoresDisponibles
+        .filter((nombre) => nombre.toLowerCase().includes(busqueda))
+        .slice(0, 8);
+    }
+
+    function ocultarSugerencias(input) {
+      const lista = input.closest(".row-field").querySelector(".sugerencias");
+      lista.innerHTML = "";
+      lista.hidden = true;
+    }
+
+    function mostrarSugerencias(input) {
+      const lista = input.closest(".row-field").querySelector(".sugerencias");
+      const coincidencias = obtenerCoincidencias(input.value);
+
+      if (!coincidencias.length) {
+        ocultarSugerencias(input);
+        return;
+      }
+
+      lista.innerHTML = coincidencias.map((nombre) => {
+        return '<li class="sugerencia-item" data-nombre="' + nombre + '">' + nombre + "</li>";
+      }).join("");
+      lista.hidden = false;
+
+      console.log("Texto:", input.value);
+      console.log("Coincidencias:", coincidencias);
+
+    }
+
+
+
+    function validarFormulario(payload) {
+      if (!payload.ordenCompra.trim()) {
+        throw new Error("La orden de compra es obligatoria.");
+      }
+
+      if (!/^\d+$/.test(payload.ordenCompra.trim())) {
+        throw new Error("La orden de compra solo debe contener numeros.");
+      }
+
+      if (!payload.obra.trim()) {
+        throw new Error("El nombre de la obra es obligatorio.");
+      }
+
+      if (!payload.fecha) {
+        throw new Error("La fecha es obligatoria.");
+      }
+
+      if (!payload.horaEntrada) {
+        throw new Error("La hora de entrada es obligatoria.");
+      }
+
+      if (Number(payload.horaEntrada.split(":")[0]) >= 12) {
+        throw new Error("La hora de entrada debe estar en la jornada AM.");
+      }
+
+      if (!payload.trabajadores.length) {
+        throw new Error("Debes agregar al menos un trabajador.");
+      }
+
+      payload.trabajadores.forEach((item, index) => {
+        if (!item.nombre) {
+          throw new Error("Falta seleccionar trabajador en la fila " + (index + 1) + ".");
+        }
+
+        if (!item.horaLlegada) {
+          throw new Error("Falta la hora de llegada en la fila " + (index + 1) + ".");
+        }
+      });
+    }
+
+    function leerFormulario() {
+      const trabajadores = obtenerFilas().map((row) => {
+        return {
+          nombre: row.querySelector(".trabajador").value,
+          horaLlegada: row.querySelector(".hora").value
+        };
+      });
+
+      return {
+        ordenCompra: document.getElementById("ordenCompra").value,
+        obra: document.getElementById("obra").value,
+        fecha: fechaInput.value,
+        horaEntrada: horaEntradaInput.value,
+        trabajadores: trabajadores
+      };
+    }
+
+    function mostrarEstado(mensaje, tipo) {
+      statusMsg.textContent = mensaje;
+      statusMsg.className = "status" + (tipo ? " " + tipo : "");
+    }
+
+    async function enviarAsistencia(payload) {
+      const response = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "No fue posible guardar la asistencia.");
+      }
+
+      return data;
+    }
+
+    agregarFilaBtn.addEventListener("click", () => {
+      crearFila();
+    });
+
+    tablaTrabajadores.addEventListener("input", (event) => {
+      const input = event.target.closest(".trabajador");
+      if (!input) return;
+      mostrarSugerencias(input);
+    });
+
+    tablaTrabajadores.addEventListener("focusin", (event) => {
+      const input = event.target.closest(".trabajador");
+      if (!input || !input.value.trim()) return;
+      mostrarSugerencias(input);
+    });
+
+    tablaTrabajadores.addEventListener("focusout", (event) => {
+      const input = event.target.closest(".trabajador");
+      if (!input) return;
+
+      setTimeout(() => {
+        ocultarSugerencias(input);
+      }, 150);
+    });
+
+    tablaTrabajadores.addEventListener("click", (event) => {
+      
+      const sugerencia = event.target.closest(".sugerencia-item");
+
+          if (sugerencia) {
+            const rowField = sugerencia.closest(".row-field");
+            const input = rowField.querySelector(".trabajador");
+            input.value = sugerencia.dataset.nombre;
+            ocultarSugerencias(input);
+            input.focus();
+            return;
+}
+      
+      
+      const button = event.target.closest(".eliminarFilaBtn");
+
+      if (!button) {
+        return;
+      }
+
+      const filas = obtenerFilas();
+      if (filas.length === 1) {
+        mostrarEstado("Debe existir al menos una fila.", "error");
+        return;
+      }
+
+      button.closest(".row").remove();
+      mostrarEstado("", "");
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (ENDPOINT === "PEGAR_AQUI_URL_DE_GOOGLE_APPS_SCRIPT") {
+        mostrarEstado("Pega la URL del Web App de Google Apps Script antes de enviar.", "error");
+        return;
+      }
+
+      try {
+        const payload = leerFormulario();
+        validarFormulario(payload);
+
+        enviarBtn.disabled = true;
+        agregarFilaBtn.disabled = true;
+        mostrarEstado("Enviando asistencia...", "");
+
+        await enviarAsistencia(payload);
+        form.reset();
+        fechaInput.value = obtenerFechaLocalActual();
+        tablaTrabajadores.innerHTML = [
+          '<div class="table-head">',
+          "  <div>Trabajador</div>",
+          "  <div>Hora de llegada</div>",
+          "  <div>Quitar</div>",
+          "</div>"
+        ].join("");
+        crearFila();
+        mostrarEstado("Asistencia guardada correctamente.", "ok");
+      } catch (error) {
+        mostrarEstado(error.message, "error");
+      } finally {
+        enviarBtn.disabled = false;
+        agregarFilaBtn.disabled = false;
+      }
+    });
+
+
+async function iniciarFormulario() {
+  try {
+    await cargarTrabajadores();
+  } catch (error) {
+    mostrarEstado(error.message, "error");
+  }
+
+  crearFila();
+}
+
+iniciarFormulario();
+  </script>
+</body>
+</html>
