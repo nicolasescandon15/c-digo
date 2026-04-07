@@ -375,8 +375,7 @@
         overflow-x: hidden;
       }
 
-      .page,
-      .grid {
+      .page {
         width: min(100%, calc(100% - 16px));
       }
 
@@ -401,17 +400,17 @@
       }
 
       .hero {
-        padding: 18px 16px 16px;
+        padding: 16px 16px 14px;
       }
 
       .hero h1 {
-        font-size: 1.55rem;
+        font-size: 1.2rem;
         line-height: 1.15;
-        word-break: break-word;
+        overflow-wrap: anywhere;
       }
 
       .hero p {
-        font-size: 0.96rem;
+        font-size: 0.9rem;
       }
 
       .field,
@@ -427,6 +426,13 @@
       input[type="time"] {
         width: 100%;
         max-width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+      }
+
+      input[type="date"]::-webkit-date-and-time-value,
+      input[type="time"]::-webkit-date-and-time-value {
+        text-align: left;
       }
 
       .row-field::before {
