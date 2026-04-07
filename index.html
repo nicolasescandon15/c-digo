@@ -135,6 +135,11 @@
       border-color: var(--accent);
     }
 
+    .input-error {
+      border-color: var(--error) !important;
+      background: #fff5f3;
+    }
+
     .section-title {
       display: flex;
       align-items: center;
@@ -570,6 +575,18 @@
       return String(valor || "").replace(/\s+/g, " ").trim();
     }
 
+    function limpiarErroresVisuales() {
+      form.querySelectorAll(".input-error").forEach((element) => {
+        element.classList.remove("input-error");
+      });
+    }
+
+    function marcarErrorInput(input) {
+      if (input) {
+        input.classList.add("input-error");
+      }
+    }
+
     function crearFila() {
       const row = document.createElement("div");
       row.className = "row";
@@ -666,43 +683,98 @@
 
 
     function validarFormulario(payload) {
+      const errores = [];
+      const duplicados = [];
+      const nombresMap = new Map();
+
+      limpiarErroresVisuales();
+
+      const ordenCompraField = document.getElementById("ordenCompra");
+      const obraField = document.getElementById("obra");
+      const filas = obtenerFilas();
+
       if (!payload.ordenCompra.trim()) {
-        throw new Error("La orden de compra es obligatoria.");
+        errores.push("El numero de cotizacion es obligatorio.");
+        marcarErrorInput(ordenCompraField);
       }
 
       if (!/^\d+$/.test(payload.ordenCompra.trim())) {
-        throw new Error("La orden de compra solo debe contener numeros.");
+        errores.push("El numero de cotizacion solo debe contener numeros.");
+        marcarErrorInput(ordenCompraField);
       }
 
       if (!payload.obra.trim()) {
-        throw new Error("El nombre de la obra es obligatorio.");
+        errores.push("El nombre de la obra es obligatorio.");
+        marcarErrorInput(obraField);
       }
 
       if (!payload.fecha) {
-        throw new Error("La fecha es obligatoria.");
+        errores.push("El dia es obligatorio.");
+        marcarErrorInput(fechaInput);
       }
 
       if (!payload.horaEntrada) {
-        throw new Error("La hora de entrada es obligatoria.");
+        errores.push("La hora de entrada es obligatoria.");
+        marcarErrorInput(horaEntradaInput);
       }
 
       if (Number(payload.horaEntrada.split(":")[0]) >= 12) {
-        throw new Error("La hora de entrada debe estar en la jornada AM.");
+        errores.push("La hora de entrada debe estar en la jornada AM.");
+        marcarErrorInput(horaEntradaInput);
       }
 
       if (!payload.trabajadores.length) {
-        throw new Error("Debes agregar al menos un trabajador.");
+        errores.push("Debes agregar al menos un trabajador.");
       }
 
       payload.trabajadores.forEach((item, index) => {
+        const row = filas[index];
+        const nombreInput = row ? row.querySelector(".trabajador") : null;
+        const horaInput = row ? row.querySelector(".hora") : null;
+        const nombreNormalizado = limpiarTexto(item.nombre).toLowerCase();
+
         if (!item.nombre) {
-          throw new Error("Falta seleccionar trabajador en la fila " + (index + 1) + ".");
+          errores.push("Falta seleccionar trabajador en la fila " + (index + 1) + ".");
+          marcarErrorInput(nombreInput);
         }
 
         if (!item.horaLlegada) {
-          throw new Error("Falta la hora de llegada en la fila " + (index + 1) + ".");
+          errores.push("Falta la hora de llegada en la fila " + (index + 1) + ".");
+          marcarErrorInput(horaInput);
+        }
+
+        if (nombreNormalizado) {
+          if (!nombresMap.has(nombreNormalizado)) {
+            nombresMap.set(nombreNormalizado, []);
+          }
+
+          nombresMap.get(nombreNormalizado).push({
+            index: index,
+            valorOriginal: item.nombre
+          });
         }
       });
+
+      nombresMap.forEach((items) => {
+        if (items.length > 1) {
+          duplicados.push(items[0].valorOriginal);
+
+          items.forEach((item) => {
+            const row = filas[item.index];
+            if (row) {
+              marcarErrorInput(row.querySelector(".trabajador"));
+            }
+          });
+        }
+      });
+
+      if (duplicados.length) {
+        errores.push("Trabajadores duplicados: " + duplicados.join(", "));
+      }
+
+      if (errores.length) {
+        throw new Error(errores[0]);
+      }
     }
 
     function leerFormulario() {
@@ -750,6 +822,10 @@
     });
 
     tablaTrabajadores.addEventListener("input", (event) => {
+      if (event.target.matches("input")) {
+        event.target.classList.remove("input-error");
+      }
+
       const input = event.target.closest(".trabajador");
       if (!input) return;
       mostrarSugerencias(input);
