@@ -3,7 +3,11 @@ var WORKERS_SHEET_NAME = "Trabajadores";
 
 function doPost(e) {
   try {
-    var data = JSON.parse(e.postData.contents || "{}");
+    if (!e || !e.postData || !e.postData.contents) {
+      throw new Error("Solicitud invalida.");
+    }
+
+    var data = normalizarPayload(JSON.parse(e.postData.contents || "{}"));
     validarDatos(data);
 
     var sheet = obtenerHoja();
@@ -45,6 +49,21 @@ function doGet() {
   });
 }
 
+function normalizarPayload(data) {
+  return {
+    ordenCompra: limpiarTexto(data.ordenCompra),
+    obra: limpiarTexto(data.obra),
+    fecha: limpiarTexto(data.fecha),
+    horaEntrada: limpiarTexto(data.horaEntrada),
+    trabajadores: Array.isArray(data.trabajadores) ? data.trabajadores.map(function (item) {
+      return {
+        nombre: limpiarTexto(item && item.nombre),
+        horaLlegada: limpiarTexto(item && item.horaLlegada)
+      };
+    }) : []
+  };
+}
+
 
 function validarDatos(data) {
   if (!data.ordenCompra) {
@@ -75,6 +94,10 @@ function validarDatos(data) {
     throw new Error("No se recibieron trabajadores.");
   }
 
+  if (data.trabajadores.length > 200) {
+    throw new Error("Se recibieron demasiados trabajadores en una sola solicitud.");
+  }
+
   data.trabajadores.forEach(function (item, index) {
     if (!item.nombre) {
       throw new Error("Falta el nombre del trabajador en la fila " + (index + 1) + ".");
@@ -82,6 +105,10 @@ function validarDatos(data) {
 
     if (!item.horaLlegada) {
       throw new Error("Falta la hora de llegada en la fila " + (index + 1) + ".");
+    }
+
+    if (!/^\d{2}:\d{2}$/.test(item.horaLlegada)) {
+      throw new Error("La hora de llegada no es valida en la fila " + (index + 1) + ".");
     }
   });
 }
@@ -128,10 +155,13 @@ function obtenerTrabajadores() {
     .getRange(2, 1, lastRow - 1, 1)
     .getValues()
     .map(function (row) {
-      return String(row[0]).trim();
+      return formatearNombre(row[0]);
     })
     .filter(function (nombre) {
       return nombre !== "";
+    })
+    .filter(function (nombre, index, lista) {
+      return lista.indexOf(nombre) === index;
     });
 }
 
@@ -153,9 +183,17 @@ function calcularAsistencia(horaEntrada, horaLlegada) {
 }
 
 function convertirHoraAMinutos(hora) {
+  if (!/^\d{2}:\d{2}$/.test(String(hora))) {
+    throw new Error("Formato de hora invalido.");
+  }
+
   var partes = String(hora).split(":");
   var horas = Number(partes[0]);
   var minutos = Number(partes[1]);
+
+  if (horas < 0 || horas > 23 || minutos < 0 || minutos > 59) {
+    throw new Error("Hora fuera de rango.");
+  }
 
   return (horas * 60) + minutos;
 }
@@ -165,14 +203,19 @@ function formatearNombre(nombre) {
 }
 
 function formatearTexto(texto) {
-  return String(texto)
+  return limpiarTexto(texto)
     .toLowerCase()
-    .trim()
     .split(/\s+/)
     .map(function (palabra) {
       return palabra.charAt(0).toUpperCase() + palabra.slice(1);
     })
     .join(" ");
+}
+
+function limpiarTexto(texto) {
+  return String(texto || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 

@@ -232,17 +232,21 @@
       margin-top: 14px;
     }
 
-    .section-title .primary-btn {
-      width: auto;
-      min-width: 190px;
-      margin-top: 0;
-      padding: 0 18px;
-    }
-
     .actions .secondary-btn {
       width: 100%;
       min-height: 50px;
       justify-content: center;
+    }
+
+    .actions-stack {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .actions-stack .secondary-btn,
+    .actions-stack .primary-btn {
+      width: 100%;
+      margin-top: 0;
     }
 
     .status {
@@ -296,18 +300,66 @@
       color: var(--error);
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(29, 23, 18, 0.58);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      z-index: 50;
+    }
+
+    .modal-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .success-modal {
+      width: min(360px, 100%);
+      padding: 28px 22px 20px;
+      border-radius: 20px;
+      background: #fffaf4;
+      box-shadow: 0 28px 60px rgba(23, 17, 12, 0.24);
+      text-align: center;
+    }
+
+    .success-modal-icon {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 14px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: #e5f3eb;
+      color: var(--ok);
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .success-modal h3 {
+      margin: 0 0 8px;
+      font-size: 1.3rem;
+    }
+
+    .success-modal p {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
     @media (max-width: 720px) {
       .grid {
         grid-template-columns: 1fr;
       }
 
       .section-title {
-        flex-direction: column;
         align-items: stretch;
-      }
-
-      .section-title .primary-btn {
-        width: 100%;
       }
 
       .table-head {
@@ -373,7 +425,6 @@
 
           <div class="section-title">
             <h2>Trabajadores</h2>
-            <button class="primary-btn" id="enviarBtn" type="submit">Enviar asistencia</button>
           </div>
 
           <p class="hint">Selecciona cada trabajador y registra su hora de llegada.</p>
@@ -386,8 +437,9 @@
             </div>
           </div>
 
-          <div class="actions">
+          <div class="actions actions-stack">
             <button class="secondary-btn" id="agregarFilaBtn" type="button">+ Agregar fila</button>
+            <button class="primary-btn" id="enviarBtn" type="submit">Enviar asistencia</button>
           </div>
           <p class="status" id="statusMsg"></p>
         </form>
@@ -395,23 +447,32 @@
     </section>
   </main>
 
+  <div class="modal-overlay" id="successModal" aria-hidden="true">
+    <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
+      <div class="success-modal-icon" aria-hidden="true">✓</div>
+      <h3 id="successModalTitle">Asistencia cargada correctamente</h3>
+      <p>La informacion fue enviada y registrada correctamente.</p>
+      <button class="primary-btn" id="cerrarModalBtn" type="button">Cerrar</button>
+    </div>
+  </div>
+
   <script>
-    const ENDPOINT = "https://script.google.com/macros/s/AKfycbwDxuGHV1oz7jgiVXmNNLccJk_7X6hdbWKQZ2PWBymcSWyVkhileOezAQQhZJZe11Ow/exec";
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbyzWldJj0VZR1r7QP_dsOSJ_pHV58n0-F23YNBGZplQrdLiEQELH0iO5H27N6zKcIg2/exec";
     let trabajadoresDisponibles = [];
 
     async function cargarTrabajadores() {
-  const response = await fetch(ENDPOINT);
-  const data = await response.json();
+      const response = await fetch(ENDPOINT, {
+        method: "GET",
+        cache: "no-store"
+      });
+      const data = await response.json();
 
-  console.log("Respuesta doGet:", data);
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "No fue posible cargar la lista de trabajadores.");
+      }
 
-  if (!response.ok || !data.ok) {
-    throw new Error(data.message || "No fue posible cargar la lista de trabajadores.");
-  }
-
-  trabajadoresDisponibles = Array.isArray(data.trabajadores) ? data.trabajadores : [];
-  console.log("Trabajadores cargados:", trabajadoresDisponibles);
-}
+      trabajadoresDisponibles = Array.isArray(data.trabajadores) ? data.trabajadores : [];
+    }
 
 
     const form = document.getElementById("asistenciaForm");
@@ -422,6 +483,9 @@
     const fechaInput = document.getElementById("fecha");
     const horaEntradaInput = document.getElementById("horaEntrada");
     const ordenCompraInput = document.getElementById("ordenCompra");
+    const successModal = document.getElementById("successModal");
+    const cerrarModalBtn = document.getElementById("cerrarModalBtn");
+    let modalTimer = null;
 
     function obtenerFechaLocalActual() {
       const ahora = new Date();
@@ -436,6 +500,10 @@
     ordenCompraInput.addEventListener("input", () => {
       ordenCompraInput.value = ordenCompraInput.value.replace(/\D/g, "");
     });
+
+    function limpiarTexto(valor) {
+      return String(valor || "").replace(/\s+/g, " ").trim();
+    }
 
     function crearFila() {
       const row = document.createElement("div");
@@ -488,14 +556,33 @@
         return;
       }
 
-      lista.innerHTML = coincidencias.map((nombre) => {
-        return '<li class="sugerencia-item" data-nombre="' + nombre + '">' + nombre + "</li>";
-      }).join("");
+      lista.innerHTML = "";
+
+      coincidencias.forEach((nombre) => {
+        const item = document.createElement("li");
+        item.className = "sugerencia-item";
+        item.dataset.nombre = nombre;
+        item.textContent = nombre;
+        lista.appendChild(item);
+      });
+
       lista.hidden = false;
+    }
 
-      console.log("Texto:", input.value);
-      console.log("Coincidencias:", coincidencias);
+    function abrirModalExito() {
+      clearTimeout(modalTimer);
+      successModal.classList.add("visible");
+      successModal.setAttribute("aria-hidden", "false");
 
+      modalTimer = setTimeout(() => {
+        cerrarModalExito();
+      }, 2600);
+    }
+
+    function cerrarModalExito() {
+      clearTimeout(modalTimer);
+      successModal.classList.remove("visible");
+      successModal.setAttribute("aria-hidden", "true");
     }
 
 
@@ -543,14 +630,14 @@
     function leerFormulario() {
       const trabajadores = obtenerFilas().map((row) => {
         return {
-          nombre: row.querySelector(".trabajador").value,
+          nombre: limpiarTexto(row.querySelector(".trabajador").value),
           horaLlegada: row.querySelector(".hora").value
         };
       });
 
       return {
-        ordenCompra: document.getElementById("ordenCompra").value,
-        obra: document.getElementById("obra").value,
+        ordenCompra: limpiarTexto(document.getElementById("ordenCompra").value),
+        obra: limpiarTexto(document.getElementById("obra").value),
         fecha: fechaInput.value,
         horaEntrada: horaEntradaInput.value,
         trabajadores: trabajadores
@@ -635,6 +722,22 @@
       mostrarEstado("", "");
     });
 
+    cerrarModalBtn.addEventListener("click", () => {
+      cerrarModalExito();
+    });
+
+    successModal.addEventListener("click", (event) => {
+      if (event.target === successModal) {
+        cerrarModalExito();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        cerrarModalExito();
+      }
+    });
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
@@ -662,7 +765,8 @@
           "</div>"
         ].join("");
         crearFila();
-        mostrarEstado("Asistencia guardada correctamente.", "ok");
+        mostrarEstado("", "");
+        abrirModalExito();
       } catch (error) {
         mostrarEstado(error.message, "error");
       } finally {
