@@ -542,20 +542,33 @@
 
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbyzWldJj0VZR1r7QP_dsOSJ_pHV58n0-F23YNBGZplQrdLiEQELH0iO5H27N6zKcIg2/exec";
-    let trabajadoresDisponibles = [];
+    const sugerenciasCache = new Map();
+    const MINIMO_BUSQUEDA = 2;
 
-    async function cargarTrabajadores() {
-      const response = await fetch(ENDPOINT, {
+    async function buscarTrabajadores(query) {
+      const busqueda = limpiarTexto(query).toLowerCase();
+
+      if (busqueda.length < MINIMO_BUSQUEDA) {
+        return [];
+      }
+
+      if (sugerenciasCache.has(busqueda)) {
+        return sugerenciasCache.get(busqueda);
+      }
+
+      const response = await fetch(ENDPOINT + "?q=" + encodeURIComponent(busqueda), {
         method: "GET",
         cache: "no-store"
       });
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "No fue posible cargar la lista de trabajadores.");
+        throw new Error(data.message || "No fue posible cargar coincidencias.");
       }
 
-      trabajadoresDisponibles = Array.isArray(data.trabajadores) ? data.trabajadores : [];
+      const trabajadores = Array.isArray(data.trabajadores) ? data.trabajadores : [];
+      sugerenciasCache.set(busqueda, trabajadores);
+      return trabajadores;
     }
 
 
@@ -643,27 +656,35 @@
     }
 
 
-    function obtenerCoincidencias(valor) {
-      const busqueda = valor.trim().toLowerCase();
-
-      if (!busqueda) {
-        return [];
-      }
-
-      return trabajadoresDisponibles
-        .filter((nombre) => nombre.toLowerCase().includes(busqueda))
-        .slice(0, 8);
-    }
-
     function ocultarSugerencias(input) {
       const lista = input.closest(".row-field").querySelector(".sugerencias");
       lista.innerHTML = "";
       lista.hidden = true;
     }
 
-    function mostrarSugerencias(input) {
+    async function mostrarSugerencias(input) {
       const lista = input.closest(".row-field").querySelector(".sugerencias");
-      const coincidencias = obtenerCoincidencias(input.value);
+      const busqueda = limpiarTexto(input.value);
+      const requestId = String(Date.now()) + Math.random().toString(16).slice(2);
+      input.dataset.requestId = requestId;
+
+      if (busqueda.length < MINIMO_BUSQUEDA) {
+        ocultarSugerencias(input);
+        return;
+      }
+
+      let coincidencias = [];
+
+      try {
+        coincidencias = await buscarTrabajadores(busqueda);
+      } catch (error) {
+        ocultarSugerencias(input);
+        return;
+      }
+
+      if (input.dataset.requestId !== requestId) {
+        return;
+      }
 
       if (!coincidencias.length) {
         ocultarSugerencias(input);
@@ -878,7 +899,7 @@
 
     tablaTrabajadores.addEventListener("focusin", (event) => {
       const input = event.target.closest(".trabajador");
-      if (!input || !input.value.trim()) return;
+      if (!input || limpiarTexto(input.value).length < MINIMO_BUSQUEDA) return;
       mostrarSugerencias(input);
     });
 
@@ -1007,12 +1028,6 @@
 
 
 async function iniciarFormulario() {
-  try {
-    await cargarTrabajadores();
-  } catch (error) {
-    mostrarEstado(error.message, "error");
-  }
-
   crearFila();
 }
 

@@ -41,11 +41,13 @@ function doPost(e) {
   }
 }
 
-function doGet() {
+function doGet(e) {
+  var query = e && e.parameter ? limpiarTexto(e.parameter.q) : "";
+
   return responderJson({
     ok: true,
-    trabajadores: obtenerTrabajadores(),
-    message: "Lista de trabajadores cargada"
+    trabajadores: query ? buscarTrabajadores(query) : [],
+    message: query ? "Coincidencias cargadas" : "Consulta recibida"
   });
 }
 
@@ -66,6 +68,10 @@ function normalizarPayload(data) {
 
 
 function validarDatos(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Estructura de datos invalida.");
+  }
+
   if (!data.ordenCompra) {
     throw new Error("Falta la orden de compra.");
   }
@@ -98,6 +104,8 @@ function validarDatos(data) {
     throw new Error("Se recibieron demasiados trabajadores en una sola solicitud.");
   }
 
+  var trabajadoresValidos = obtenerMapaTrabajadores();
+
   data.trabajadores.forEach(function (item, index) {
     if (!item.nombre) {
       throw new Error("Falta el nombre del trabajador en la fila " + (index + 1) + ".");
@@ -109,6 +117,10 @@ function validarDatos(data) {
 
     if (!/^\d{2}:\d{2}$/.test(item.horaLlegada)) {
       throw new Error("La hora de llegada no es valida en la fila " + (index + 1) + ".");
+    }
+
+    if (!trabajadoresValidos[normalizarClave(item.nombre)]) {
+      throw new Error("Trabajador no valido en la fila " + (index + 1) + ".");
     }
   });
 }
@@ -165,6 +177,27 @@ function obtenerTrabajadores() {
     });
 }
 
+function buscarTrabajadores(query) {
+  var busqueda = limpiarTexto(query).toLowerCase();
+
+  if (busqueda.length < 2) {
+    return [];
+  }
+
+  return obtenerTrabajadores()
+    .filter(function (nombre) {
+      return normalizarClave(nombre).indexOf(busqueda) !== -1;
+    })
+    .slice(0, 8);
+}
+
+function obtenerMapaTrabajadores() {
+  return obtenerTrabajadores().reduce(function (acc, nombre) {
+    acc[normalizarClave(nombre)] = nombre;
+    return acc;
+  }, {});
+}
+
 function calcularAsistencia(horaEntrada, horaLlegada) {
   var minutosEntrada = convertirHoraAMinutos(horaEntrada);
   var minutosLlegada = convertirHoraAMinutos(horaLlegada);
@@ -200,6 +233,10 @@ function convertirHoraAMinutos(hora) {
 
 function formatearNombre(nombre) {
   return formatearTexto(nombre);
+}
+
+function normalizarClave(texto) {
+  return limpiarTexto(texto).toLowerCase();
 }
 
 function formatearTexto(texto) {
