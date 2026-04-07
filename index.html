@@ -90,6 +90,11 @@
       margin-bottom: 20px;
     }
 
+    .field {
+      width: 100%;
+      min-width: 0;
+    }
+
     label {
       display: block;
       font-size: 0.95rem;
@@ -105,6 +110,7 @@
 
     input,
     select {
+      display: block;
       width: 100%;
       min-height: 46px;
       border: 1px solid var(--line);
@@ -256,9 +262,11 @@
       font-weight: 700;
     }
 
-        .row-field {
-          position: relative;
-        }
+    .row-field {
+      position: relative;
+      width: 100%;
+      min-width: 0;
+    }
 
         .sugerencias {
           position: absolute;
@@ -370,6 +378,10 @@
         grid-template-columns: 1fr;
       }
 
+      .content {
+        padding: 18px;
+      }
+
       .row-field::before {
         content: attr(data-label);
         display: block;
@@ -402,22 +414,22 @@
       <div class="content">
         <form id="asistenciaForm">
           <div class="grid">
-            <div>
+            <div class="field">
               <label for="ordenCompra">Numero de Cotizacion</label>
               <input id="ordenCompra" name="ordenCompra" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ej:1024" required>
             </div>
 
-            <div>
+            <div class="field">
               <label for="obra">Nombre de la obra</label>
               <input id="obra" name="obra" type="text" placeholder="Ej: Colgate" required>
             </div>
 
-            <div>
+            <div class="field">
               <label for="fecha">Día</label>
               <input id="fecha" name="fecha" type="date" required>
             </div>
 
-            <div>
+            <div class="field">
               <label for="horaEntrada">Hora de entrada</label>
               <input id="horaEntrada" name="horaEntrada" type="time" required>
             </div>
