@@ -375,6 +375,11 @@
       color: var(--muted);
     }
 
+    .success-modal.error-modal .success-modal-icon {
+      background: #f8e2dd;
+      color: var(--error);
+    }
+
     @media (max-width: 720px) {
       body {
         overflow-x: hidden;
@@ -526,6 +531,15 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="infoModal" aria-hidden="true">
+    <div class="success-modal error-modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+      <div class="success-modal-icon" aria-hidden="true">!</div>
+      <h3 id="infoModalTitle">Revisa la informacion</h3>
+      <p id="infoModalMessage">Hay datos pendientes por corregir.</p>
+      <button class="primary-btn" id="cerrarInfoModalBtn" type="button">Entendido</button>
+    </div>
+  </div>
+
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbyzWldJj0VZR1r7QP_dsOSJ_pHV58n0-F23YNBGZplQrdLiEQELH0iO5H27N6zKcIg2/exec";
     let trabajadoresDisponibles = [];
@@ -555,6 +569,9 @@
     const ordenCompraInput = document.getElementById("ordenCompra");
     const successModal = document.getElementById("successModal");
     const cerrarModalBtn = document.getElementById("cerrarModalBtn");
+    const infoModal = document.getElementById("infoModal");
+    const infoModalMessage = document.getElementById("infoModalMessage");
+    const cerrarInfoModalBtn = document.getElementById("cerrarInfoModalBtn");
     let modalTimer = null;
 
     function obtenerFechaLocalActual() {
@@ -680,6 +697,17 @@
       successModal.setAttribute("aria-hidden", "true");
     }
 
+    function abrirModalInfo(mensaje) {
+      infoModalMessage.textContent = mensaje;
+      infoModal.classList.add("visible");
+      infoModal.setAttribute("aria-hidden", "false");
+    }
+
+    function cerrarModalInfo() {
+      infoModal.classList.remove("visible");
+      infoModal.setAttribute("aria-hidden", "true");
+    }
+
 
 
     function validarFormulario(payload) {
@@ -769,11 +797,15 @@
       });
 
       if (duplicados.length) {
-        errores.push("Trabajadores duplicados: " + duplicados.join(", "));
+        abrirModalInfo("Hay trabajadores repetidos en la lista: " + duplicados.join(", "));
       }
 
       if (errores.length) {
         throw new Error(errores[0]);
+      }
+
+      if (duplicados.length) {
+        throw new Error("");
       }
     }
 
@@ -880,15 +912,26 @@
       cerrarModalExito();
     });
 
+    cerrarInfoModalBtn.addEventListener("click", () => {
+      cerrarModalInfo();
+    });
+
     successModal.addEventListener("click", (event) => {
       if (event.target === successModal) {
         cerrarModalExito();
       }
     });
 
+    infoModal.addEventListener("click", (event) => {
+      if (event.target === infoModal) {
+        cerrarModalInfo();
+      }
+    });
+
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         cerrarModalExito();
+        cerrarModalInfo();
       }
     });
 
@@ -922,7 +965,11 @@
         mostrarEstado("", "");
         abrirModalExito();
       } catch (error) {
-        mostrarEstado(error.message, "error");
+        if (error.message) {
+          mostrarEstado(error.message, "error");
+        } else {
+          mostrarEstado("", "");
+        }
       } finally {
         enviarBtn.disabled = false;
         agregarFilaBtn.disabled = false;
