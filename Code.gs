@@ -41,15 +41,36 @@ function doPost(e) {
   }
 }
 
-function doGet(e) {
-  var query = e && e.parameter ? limpiarTexto(e.parameter.q) : "";
 
-  return responderJson({
-    ok: true,
-    trabajadores: query ? buscarTrabajadores(query) : [],
-    message: query ? "Coincidencias cargadas" : "Consulta recibida"
-  });
+function doGet(e) {
+  try {
+    var query = limpiarTexto(e.parameter.q || "").toLowerCase();
+
+    var trabajadores = obtenerTrabajadores();
+
+    if (query) {
+      trabajadores = trabajadores.filter(function(nombre) {
+        return nombre.toLowerCase().includes(query);
+      });
+    }
+
+    return responderJson({
+      ok: true,
+      trabajadores: trabajadores,
+      message: "Lista de trabajadores cargada"
+    });
+
+  } catch (error) {
+    return responderJson({
+      ok: false,
+      message: error.message
+    });
+  }
 }
+
+
+
+
 
 function normalizarPayload(data) {
   return {
