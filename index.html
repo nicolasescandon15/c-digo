@@ -608,7 +608,7 @@
   </div>
 
   <script>
-    const ENDPOINT = "https://script.google.com/macros/s/AKfycbwDW9viTinvTW50PBag69SlGwufIg-BkHELZy5EywJf63XfjpagzBfsWjUVDqhLoVp0/exec";
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbxnPK0qvKH_Rz4DQAcY_xWVbfpbzPOaIPls0HX0-EWCsPJbQx60OqWnRN0YsxVwYFbT/exec";
     const sugerenciasCache = new Map();
     const MINIMO_BUSQUEDA = 2;
 
@@ -972,7 +972,7 @@
       for (const trabajador of payload.trabajadores) {
         const minutosLlegada = convertirHoraAMinutosFrontend(trabajador.horaLlegada);
 
-        if ((minutosLlegada - minutosEntrada) >= 15) {
+        if ((minutosLlegada - minutosEntrada) >= 10) {
           const razon = await abrirModalRazon(
             trabajador.nombre,
             trabajador.razonLlegadaTarde || ""

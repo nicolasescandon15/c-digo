@@ -151,7 +151,7 @@ function validarDatos(data) {
       throw new Error("Trabajador no valido en la fila " + (index + 1) + ".");
     }
 
-    if ((convertirHoraAMinutos(item.horaLlegada) - convertirHoraAMinutos(data.horaEntrada)) >= 15 && !item.razonLlegadaTarde) {
+    if ((convertirHoraAMinutos(item.horaLlegada) - convertirHoraAMinutos(data.horaEntrada)) >= 10 && !item.razonLlegadaTarde) {
       throw new Error("Falta la razon de llegada tarde en la fila " + (index + 1) + ".");
     }
   });
