@@ -326,3 +326,103 @@ function responderJson(data) {
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+function archivarAsistenciaSemanal() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sourceSheet = obtenerHojaAsistenciaParaArchivo(spreadsheet);
+
+  if (!sourceSheet) {
+    Logger.log('No se encontro la hoja "ASISTENCIA".');
+    return;
+  }
+
+  var lastRow = sourceSheet.getLastRow();
+  var lastColumn = sourceSheet.getLastColumn();
+
+  if (lastRow < 2 || lastColumn === 0) {
+    Logger.log('La hoja "ASISTENCIA" no tiene datos para archivar.');
+    return;
+  }
+
+  var data = sourceSheet.getRange(1, 1, lastRow, lastColumn).getValues();
+  if (data.length <= 1) {
+    Logger.log('La hoja "ASISTENCIA" solo tiene encabezados.');
+    return;
+  }
+
+  var mondayDate = obtenerLunesDeSemanaActual();
+  var baseName = construirNombreHojaSemanal(mondayDate);
+  var finalName = obtenerNombreHojaDisponible(spreadsheet, baseName);
+  var archiveSheet = spreadsheet.insertSheet(finalName);
+
+  archiveSheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+  Logger.log('Datos copiados en la hoja: ' + finalName);
+
+  if (lastRow > 1) {
+    sourceSheet.getRange(2, 1, lastRow - 1, lastColumn).clearContent();
+    Logger.log('Datos limpiados de la hoja "ASISTENCIA", conservando encabezados.');
+  }
+}
+
+function configurarTriggerSemanalArchivo() {
+  ScriptApp.getProjectTriggers().forEach(function (trigger) {
+    if (trigger.getHandlerFunction() === 'archivarAsistenciaSemanal') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  ScriptApp.newTrigger('archivarAsistenciaSemanal')
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.SUNDAY)
+    .atHour(20)
+    .create();
+
+  Logger.log('Trigger semanal configurado para cada domingo a las 8:00 p.m.');
+}
+
+function obtenerHojaAsistenciaParaArchivo(spreadsheet) {
+  return spreadsheet.getSheetByName('ASISTENCIA') || spreadsheet.getSheetByName(SHEET_NAME);
+}
+
+function obtenerLunesDeSemanaActual() {
+  var now = new Date();
+  var day = now.getDay();
+  var diff = day === 0 ? -6 : 1 - day;
+  var monday = new Date(now);
+
+  monday.setDate(now.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+
+  return monday;
+}
+
+function construirNombreHojaSemanal(date) {
+  var meses = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre'
+  ];
+
+  return 'semana ' + date.getDate() + ' de ' + meses[date.getMonth()];
+}
+
+function obtenerNombreHojaDisponible(spreadsheet, baseName) {
+  var name = baseName;
+  var counter = 1;
+
+  while (spreadsheet.getSheetByName(name)) {
+    name = baseName + ' (' + counter + ')';
+    counter += 1;
+  }
+
+  return name;
+}
