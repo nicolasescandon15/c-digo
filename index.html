@@ -93,6 +93,8 @@
     .field {
       width: 100%;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
     }
 
     label {
@@ -164,6 +166,8 @@
       color: var(--muted);
       font-size: 0.9rem;
       font-weight: 400;
+      min-height: 2.6em;
+      line-height: 1.3;
     }
 
     .table {
@@ -529,19 +533,21 @@
           <div class="grid">
             <div class="field">
               <label for="obra">Obra</label>
+              <p class="field-help">Seleccione en la lista desplegable la obra en la que se encuentra.</p>
               <select id="obra" name="obra" required>
                 <option value="">Selecciona una obra</option>
               </select>
-              <p class="field-help">Seleccione en la lista desplegable la obra en la que se encuentra.</p>
             </div>
 
             <div class="field">
               <label for="fecha">Día</label>
+              <p class="field-help">Seleccione el dia de la asistencia.</p>
               <input id="fecha" name="fecha" type="date" required>
             </div>
 
             <div class="field">
               <label for="horaEntrada">Hora de entrada</label>
+              <p class="field-help">Seleccione la hora de entrada de la obra.</p>
               <input id="horaEntrada" name="horaEntrada" type="time" required>
             </div>
           </div>
@@ -602,7 +608,7 @@
   </div>
 
   <script>
-    const ENDPOINT = "https://script.google.com/macros/s/AKfycbwdB-_pxolxt5Y9BpPo95Zmmee3d9CB25_eYxzx1ZGAz0F3se2FylzSY8lPeI2AfGRS/exec";
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbwDW9viTinvTW50PBag69SlGwufIg-BkHELZy5EywJf63XfjpagzBfsWjUVDqhLoVp0/exec";
     const sugerenciasCache = new Map();
     const MINIMO_BUSQUEDA = 2;
 
