@@ -380,6 +380,49 @@
       color: var(--error);
     }
 
+    .reason-modal {
+      text-align: left;
+    }
+
+    .reason-modal .success-modal-icon {
+      margin-bottom: 12px;
+    }
+
+    .reason-modal p {
+      margin-bottom: 12px;
+    }
+
+    .reason-modal textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+      margin-bottom: 14px;
+    }
+
+    .reason-modal textarea:focus {
+      outline: 2px solid rgba(181, 93, 36, 0.2);
+      border-color: var(--accent);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-actions .secondary-btn,
+    .modal-actions .primary-btn {
+      width: auto;
+      min-width: 120px;
+      margin-top: 0;
+    }
+
     @media (max-width: 720px) {
       body {
         overflow-x: hidden;
@@ -478,13 +521,10 @@
         <form id="asistenciaForm">
           <div class="grid">
             <div class="field">
-              <label for="ordenCompra">Numero de Cotizacion</label>
-              <input id="ordenCompra" name="ordenCompra" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ej:1024" required>
-            </div>
-
-            <div class="field">
-              <label for="obra">Nombre de la obra</label>
-              <input id="obra" name="obra" type="text" placeholder="Ej: Colgate" required>
+              <label for="obra">Obra (seleccione en la lista desplegable la obra en la que se encuentra)</label>
+              <select id="obra" name="obra" required>
+                <option value="">Selecciona una obra</option>
+              </select>
             </div>
 
             <div class="field">
@@ -540,6 +580,19 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="reasonModal" aria-hidden="true">
+    <div class="success-modal error-modal reason-modal" role="dialog" aria-modal="true" aria-labelledby="reasonModalTitle">
+      <div class="success-modal-icon" aria-hidden="true">!</div>
+      <h3 id="reasonModalTitle">Llegada tarde</h3>
+      <p id="reasonModalMessage">Indique la razon de llegada tarde.</p>
+      <textarea id="reasonModalTextarea" placeholder="Escribe la razon"></textarea>
+      <div class="modal-actions">
+        <button class="secondary-btn" id="cancelarReasonModalBtn" type="button">Cancelar</button>
+        <button class="primary-btn" id="guardarReasonModalBtn" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbzGw_SmIYGpw5VvyUWgmSB9eqKCOFgduWWYgzx1RjBb3aZ1boDvkoaS9XakEiXYdffd/exec";
     const sugerenciasCache = new Map();
@@ -571,6 +624,30 @@
       return trabajadores;
     }
 
+    async function cargarObras() {
+      const response = await fetch(ENDPOINT + "?resource=obras", {
+        method: "GET",
+        cache: "no-store"
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "No fue posible cargar la lista de obras.");
+      }
+
+      const obras = Array.isArray(data.obras) ? data.obras : [];
+      const obraSelect = document.getElementById("obra");
+
+      obraSelect.innerHTML = '<option value="">Selecciona una obra</option>';
+
+      obras.forEach((obra) => {
+        const option = document.createElement("option");
+        option.value = obra;
+        option.textContent = obra;
+        obraSelect.appendChild(option);
+      });
+    }
+
 
     const form = document.getElementById("asistenciaForm");
     const tablaTrabajadores = document.getElementById("tablaTrabajadores");
@@ -579,15 +656,21 @@
     const statusMsg = document.getElementById("statusMsg");
     const fechaInput = document.getElementById("fecha");
     const horaEntradaInput = document.getElementById("horaEntrada");
-    const ordenCompraInput = document.getElementById("ordenCompra");
+    const obraField = document.getElementById("obra");
     const successModal = document.getElementById("successModal");
     const cerrarModalBtn = document.getElementById("cerrarModalBtn");
     const infoModal = document.getElementById("infoModal");
     const infoModalMessage = document.getElementById("infoModalMessage");
     const cerrarInfoModalBtn = document.getElementById("cerrarInfoModalBtn");
+    const reasonModal = document.getElementById("reasonModal");
+    const reasonModalMessage = document.getElementById("reasonModalMessage");
+    const reasonModalTextarea = document.getElementById("reasonModalTextarea");
+    const cancelarReasonModalBtn = document.getElementById("cancelarReasonModalBtn");
+    const guardarReasonModalBtn = document.getElementById("guardarReasonModalBtn");
     const enviarBtnTextoOriginal = enviarBtn.textContent;
     let modalTimer = null;
     let isSubmitting = false;
+    let reasonModalResolver = null;
 
     function obtenerFechaLocalActual() {
       const ahora = new Date();
@@ -598,10 +681,6 @@
     }
 
     fechaInput.value = obtenerFechaLocalActual();
-
-    ordenCompraInput.addEventListener("input", () => {
-      ordenCompraInput.value = ordenCompraInput.value.replace(/\D/g, "");
-    });
 
     function limpiarTexto(valor) {
       return String(valor || "").replace(/\s+/g, " ").trim();
@@ -731,6 +810,31 @@
       infoModal.setAttribute("aria-hidden", "true");
     }
 
+    function abrirModalRazon(nombre, valorInicial) {
+      return new Promise((resolve) => {
+        reasonModalResolver = resolve;
+        reasonModalMessage.textContent = "Indique la razon de llegada tarde de " + nombre;
+        reasonModalTextarea.value = valorInicial || "";
+        reasonModal.classList.add("visible");
+        reasonModal.setAttribute("aria-hidden", "false");
+
+        requestAnimationFrame(() => {
+          reasonModalTextarea.focus();
+          reasonModalTextarea.select();
+        });
+      });
+    }
+
+    function resolverModalRazon(valor) {
+      if (reasonModalResolver) {
+        const resolver = reasonModalResolver;
+        reasonModalResolver = null;
+        reasonModal.classList.remove("visible");
+        reasonModal.setAttribute("aria-hidden", "true");
+        resolver(valor);
+      }
+    }
+
 
 
     function validarFormulario(payload) {
@@ -740,22 +844,10 @@
 
       limpiarErroresVisuales();
 
-      const ordenCompraField = document.getElementById("ordenCompra");
-      const obraField = document.getElementById("obra");
       const filas = obtenerFilas();
 
-      if (!payload.ordenCompra.trim()) {
-        errores.push("El numero de cotizacion es obligatorio.");
-        marcarErrorInput(ordenCompraField);
-      }
-
-      if (!/^\d+$/.test(payload.ordenCompra.trim())) {
-        errores.push("El numero de cotizacion solo debe contener numeros.");
-        marcarErrorInput(ordenCompraField);
-      }
-
-      if (!payload.obra.trim()) {
-        errores.push("El nombre de la obra es obligatorio.");
+      if (!payload.obra) {
+        errores.push("Debes seleccionar una obra de la lista.");
         marcarErrorInput(obraField);
       }
 
@@ -836,17 +928,47 @@
       const trabajadores = obtenerFilas().map((row) => {
         return {
           nombre: limpiarTexto(row.querySelector(".trabajador").value),
-          horaLlegada: row.querySelector(".hora").value
+          horaLlegada: row.querySelector(".hora").value,
+          razonLlegadaTarde: ""
         };
       });
 
       return {
-        ordenCompra: limpiarTexto(document.getElementById("ordenCompra").value),
-        obra: limpiarTexto(document.getElementById("obra").value),
+        obra: limpiarTexto(obraField.value),
         fecha: fechaInput.value,
         horaEntrada: horaEntradaInput.value,
         trabajadores: trabajadores
       };
+    }
+
+    function convertirHoraAMinutosFrontend(hora) {
+      const partes = String(hora || "").split(":");
+      return (Number(partes[0]) * 60) + Number(partes[1]);
+    }
+
+    async function solicitarRazonesLlegadaTarde(payload) {
+      const minutosEntrada = convertirHoraAMinutosFrontend(payload.horaEntrada);
+
+      for (const trabajador of payload.trabajadores) {
+        const minutosLlegada = convertirHoraAMinutosFrontend(trabajador.horaLlegada);
+
+        if ((minutosLlegada - minutosEntrada) >= 15) {
+          const razon = await abrirModalRazon(
+            trabajador.nombre,
+            trabajador.razonLlegadaTarde || ""
+          );
+
+          if (razon === null) {
+            throw new Error("Debes indicar la razon de llegada tarde para continuar.");
+          }
+
+          trabajador.razonLlegadaTarde = limpiarTexto(razon);
+
+          if (!trabajador.razonLlegadaTarde) {
+            throw new Error("Debes indicar la razon de llegada tarde para " + trabajador.nombre + ".");
+          }
+        }
+      }
     }
 
     function mostrarEstado(mensaje, tipo) {
@@ -950,6 +1072,14 @@
       cerrarModalInfo();
     });
 
+    cancelarReasonModalBtn.addEventListener("click", () => {
+      resolverModalRazon(null);
+    });
+
+    guardarReasonModalBtn.addEventListener("click", () => {
+      resolverModalRazon(reasonModalTextarea.value);
+    });
+
     successModal.addEventListener("click", (event) => {
       if (event.target === successModal) {
         cerrarModalExito();
@@ -962,10 +1092,21 @@
       }
     });
 
+    reasonModal.addEventListener("click", (event) => {
+      if (event.target === reasonModal) {
+        resolverModalRazon(null);
+      }
+    });
+
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         cerrarModalExito();
         cerrarModalInfo();
+        resolverModalRazon(null);
+      }
+
+      if (event.key === "Enter" && reasonModal.classList.contains("visible") && event.target === reasonModalTextarea && (event.metaKey || event.ctrlKey)) {
+        resolverModalRazon(reasonModalTextarea.value);
       }
     });
 
@@ -984,6 +1125,7 @@
       try {
         const payload = leerFormulario();
         validarFormulario(payload);
+        await solicitarRazonesLlegadaTarde(payload);
 
         isSubmitting = true;
         enviarBtn.disabled = true;
@@ -1028,6 +1170,12 @@
 
 
 async function iniciarFormulario() {
+  try {
+    await cargarObras();
+  } catch (error) {
+    mostrarEstado(error.message, "error");
+  }
+
   crearFila();
 }
 

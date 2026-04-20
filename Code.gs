@@ -1,5 +1,6 @@
 var SHEET_NAME = "Asistencia";
 var WORKERS_SHEET_NAME = "Trabajadores";
+var WORKS_SHEET_NAME = "obras";
 
 function doPost(e) {
   try {
@@ -11,23 +12,29 @@ function doPost(e) {
     validarDatos(data);
 
     var sheet = obtenerHoja();
+    var startRow = sheet.getLastRow() + 1;
     var filas = data.trabajadores.map(function (item) {
       var resumen = calcularAsistencia(data.horaEntrada, item.horaLlegada);
 
       return [
-        String(data.ordenCompra).trim(),
-        formatearTexto(data.obra),
+        data.obra,
         data.fecha,
         formatearNombre(item.nombre),
         data.horaEntrada,
         item.horaLlegada,
         resumen.estado,
         resumen.retraso,
-        new Date()
+        new Date(),
+        ""
       ];
     });
 
-    sheet.getRange(sheet.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
+    var razones = data.trabajadores.map(function (item) {
+      return [item.razonLlegadaTarde || ""];
+    });
+
+    sheet.getRange(startRow, 1, filas.length, filas[0].length).setValues(filas);
+    sheet.getRange(startRow, 10, razones.length, 1).setValues(razones);
 
     return responderJson({
       ok: true,
@@ -44,7 +51,16 @@ function doPost(e) {
 
 function doGet(e) {
   try {
-    var query = limpiarTexto(e.parameter.q || "").toLowerCase();
+    var resource = e && e.parameter ? limpiarTexto(e.parameter.resource || "") : "";
+    var query = e && e.parameter ? limpiarTexto(e.parameter.q || "").toLowerCase() : "";
+
+    if (resource === "obras") {
+      return responderJson({
+        ok: true,
+        obras: obtenerObras(),
+        message: "Lista de obras cargada"
+      });
+    }
 
     var trabajadores = obtenerTrabajadores();
 
@@ -74,14 +90,14 @@ function doGet(e) {
 
 function normalizarPayload(data) {
   return {
-    ordenCompra: limpiarTexto(data.ordenCompra),
     obra: limpiarTexto(data.obra),
     fecha: limpiarTexto(data.fecha),
     horaEntrada: limpiarTexto(data.horaEntrada),
     trabajadores: Array.isArray(data.trabajadores) ? data.trabajadores.map(function (item) {
       return {
         nombre: limpiarTexto(item && item.nombre),
-        horaLlegada: limpiarTexto(item && item.horaLlegada)
+        horaLlegada: limpiarTexto(item && item.horaLlegada),
+        razonLlegadaTarde: limpiarTexto(item && item.razonLlegadaTarde)
       };
     }) : []
   };
@@ -93,16 +109,8 @@ function validarDatos(data) {
     throw new Error("Estructura de datos invalida.");
   }
 
-  if (!data.ordenCompra) {
-    throw new Error("Falta la orden de compra.");
-  }
-
   if (!data.obra) {
-    throw new Error("Falta el nombre de la obra.");
-  }
-
-  if (!/^\d+$/.test(String(data.ordenCompra).trim())) {
-    throw new Error("La orden de compra solo debe contener numeros.");
+    throw new Error("Falta la obra.");
   }
 
   if (!data.fecha) {
@@ -143,6 +151,10 @@ function validarDatos(data) {
     if (!trabajadoresValidos[normalizarClave(item.nombre)]) {
       throw new Error("Trabajador no valido en la fila " + (index + 1) + ".");
     }
+
+    if ((convertirHoraAMinutos(item.horaLlegada) - convertirHoraAMinutos(data.horaEntrada)) >= 15 && !item.razonLlegadaTarde) {
+      throw new Error("Falta la razon de llegada tarde en la fila " + (index + 1) + ".");
+    }
   });
 }
 
@@ -156,19 +168,51 @@ function obtenerHoja() {
 
   if (sheet.getLastRow() === 0) {
     sheet.appendRow([
-      "Orden de compra",
-      "Obra",
+      "Obra + numero de cotizacion",
       "Fecha",
       "Trabajador",
       "Hora de entrada",
       "Hora de llegada",
       "Estado",
       "Minutos de retraso",
-      "Fecha de registro"
+      "Fecha de registro",
+      "",
+      "Razon de llegada tarde"
     ]);
   }
 
+  if (!sheet.getRange(1, 10).getValue()) {
+    sheet.getRange(1, 10).setValue("Razon de llegada tarde");
+  }
+
   return sheet;
+}
+
+function obtenerObras() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadsheet.getSheetByName(WORKS_SHEET_NAME);
+
+  if (!sheet) {
+    throw new Error('No existe la hoja "' + WORKS_SHEET_NAME + '".');
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+
+  return sheet
+    .getRange(2, 1, lastRow - 1, 1)
+    .getValues()
+    .map(function (row) {
+      return limpiarTexto(row[0]);
+    })
+    .filter(function (obra) {
+      return obra !== "";
+    })
+    .filter(function (obra, index, lista) {
+      return lista.indexOf(obra) === index;
+    });
 }
 
 function obtenerTrabajadores() {
@@ -222,8 +266,9 @@ function obtenerMapaTrabajadores() {
 function calcularAsistencia(horaEntrada, horaLlegada) {
   var minutosEntrada = convertirHoraAMinutos(horaEntrada);
   var minutosLlegada = convertirHoraAMinutos(horaLlegada);
+  var minutosLimite = minutosEntrada + 9;
 
-  if (minutosLlegada <= minutosEntrada) {
+  if (minutosLlegada <= minutosLimite) {
     return {
       estado: "A tiempo",
       retraso: 0
