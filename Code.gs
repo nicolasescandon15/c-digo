@@ -1,6 +1,7 @@
 var SHEET_NAME = "Asistencia";
 var WORKERS_SHEET_NAME = "Trabajadores";
 var WORKS_SHEET_NAME = "obras";
+var MINUTOS_JUSTIFICACION_TARDE = 10;
 
 function doPost(e) {
   try {
@@ -151,7 +152,7 @@ function validarDatos(data) {
       throw new Error("Trabajador no valido en la fila " + (index + 1) + ".");
     }
 
-    if ((convertirHoraAMinutos(item.horaLlegada) - convertirHoraAMinutos(data.horaEntrada)) >= 10 && !item.razonLlegadaTarde) {
+    if ((convertirHoraAMinutos(item.horaLlegada) - convertirHoraAMinutos(data.horaEntrada)) >= MINUTOS_JUSTIFICACION_TARDE && !item.razonLlegadaTarde) {
       throw new Error("Falta la razon de llegada tarde en la fila " + (index + 1) + ".");
     }
   });
