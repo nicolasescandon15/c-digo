@@ -24,8 +24,7 @@ function doPost(e) {
         item.horaLlegada,
         resumen.estado,
         resumen.retraso,
-        new Date(),
-        ""
+        new Date()
       ];
     });
 
@@ -34,7 +33,7 @@ function doPost(e) {
     });
 
     sheet.getRange(startRow, 1, filas.length, filas[0].length).setValues(filas);
-    sheet.getRange(startRow, 10, razones.length, 1).setValues(razones);
+    sheet.getRange(startRow, 9, razones.length, 1).setValues(razones);
 
     return responderJson({
       ok: true,
@@ -176,13 +175,12 @@ function obtenerHoja() {
       "Estado",
       "Minutos de retraso",
       "Fecha de registro",
-      "",
       "Razon de llegada tarde"
     ]);
   }
 
-  if (!sheet.getRange(1, 10).getValue()) {
-    sheet.getRange(1, 10).setValue("Razon de llegada tarde");
+  if (!sheet.getRange(1, 9).getValue()) {
+    sheet.getRange(1, 9).setValue("Razon de llegada tarde");
   }
 
   return sheet;

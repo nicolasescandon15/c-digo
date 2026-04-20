@@ -159,6 +159,13 @@
       font-size: 0.92rem;
     }
 
+    .field-help {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 400;
+    }
+
     .table {
       display: grid;
       gap: 10px;
@@ -521,10 +528,11 @@
         <form id="asistenciaForm">
           <div class="grid">
             <div class="field">
-              <label for="obra">Obra (seleccione en la lista desplegable la obra en la que se encuentra)</label>
+              <label for="obra">Obra</label>
               <select id="obra" name="obra" required>
                 <option value="">Selecciona una obra</option>
               </select>
+              <p class="field-help">Seleccione en la lista desplegable la obra en la que se encuentra.</p>
             </div>
 
             <div class="field">
@@ -744,10 +752,16 @@
     async function mostrarSugerencias(input) {
       const lista = input.closest(".row-field").querySelector(".sugerencias");
       const busqueda = limpiarTexto(input.value);
+      const valorSeleccionado = input.dataset.selectedValue || "";
       const requestId = String(Date.now()) + Math.random().toString(16).slice(2);
       input.dataset.requestId = requestId;
 
       if (busqueda.length < MINIMO_BUSQUEDA) {
+        ocultarSugerencias(input);
+        return;
+      }
+
+      if (busqueda === valorSeleccionado) {
         ocultarSugerencias(input);
         return;
       }
@@ -1016,6 +1030,7 @@
 
       const input = event.target.closest(".trabajador");
       if (!input) return;
+      input.dataset.selectedValue = "";
       mostrarSugerencias(input);
     });
 
@@ -1042,6 +1057,7 @@
             const rowField = sugerencia.closest(".row-field");
             const input = rowField.querySelector(".trabajador");
             input.value = sugerencia.dataset.nombre;
+            input.dataset.selectedValue = sugerencia.dataset.nombre;
             ocultarSugerencias(input);
             input.focus();
             return;
