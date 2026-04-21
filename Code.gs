@@ -12,6 +12,14 @@ function doPost(e) {
     var data = normalizarPayload(JSON.parse(e.postData.contents || "{}"));
     validarDatos(data);
 
+    if (envioYaProcesado(data.envioId)) {
+      Logger.log('Envio duplicado ignorado: ' + data.envioId);
+      return responderJson({
+        ok: true,
+        message: "Envio ya procesado anteriormente"
+      });
+    }
+
     var sheet = obtenerHoja();
     var startRow = sheet.getLastRow() + 1;
     var filas = data.trabajadores.map(function (item) {
@@ -36,6 +44,7 @@ function doPost(e) {
     sheet.getRange(startRow, 1, filas.length, filas[0].length).setValues(filas);
     sheet.getRange(startRow, 4, filas.length, 2).setNumberFormat("hh:mm");
     sheet.getRange(startRow, 9, razones.length, 1).setValues(razones);
+    marcarEnvioComoProcesado(data.envioId);
 
     return responderJson({
       ok: true,
@@ -91,6 +100,7 @@ function doGet(e) {
 
 function normalizarPayload(data) {
   return {
+    envioId: limpiarTexto(data.envioId),
     obra: limpiarTexto(data.obra),
     fecha: limpiarTexto(data.fecha),
     horaEntrada: limpiarTexto(data.horaEntrada),
@@ -112,6 +122,10 @@ function validarDatos(data) {
 
   if (!data.obra) {
     throw new Error("Falta la obra.");
+  }
+
+  if (!data.envioId) {
+    throw new Error("Falta el identificador del envio.");
   }
 
   if (!data.fecha) {
@@ -326,6 +340,14 @@ function responderJson(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function envioYaProcesado(envioId) {
+  return PropertiesService.getDocumentProperties().getProperty('envio_' + envioId) === '1';
+}
+
+function marcarEnvioComoProcesado(envioId) {
+  PropertiesService.getDocumentProperties().setProperty('envio_' + envioId, '1');
 }
 
 function archivarAsistenciaSemanal() {
