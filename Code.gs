@@ -9,8 +9,9 @@ function doPost(e) {
       throw new Error("Solicitud invalida.");
     }
 
-    var data = normalizarPayload(JSON.parse(e.postData.contents || "{}"));
+    var data = normalizarPayload(JSON.parse(e.parameter.payload || "{}"));
     validarDatos(data);
+
 
     if (envioYaProcesado(data.envioId)) {
       Logger.log('Envio duplicado ignorado: ' + data.envioId);

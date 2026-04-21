@@ -1008,13 +1008,14 @@
       let data;
 
       try {
-        response = await fetch(ENDPOINT, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
-          body: JSON.stringify(payload)
-        });
+          response = await fetch(ENDPOINT, {
+            method: "POST",
+            body: new URLSearchParams({
+              payload: JSON.stringify(payload)
+            })
+          });
+
+
       } catch (error) {
         throw new Error("No se pudo confirmar el envio. Verifica tu conexion. Si intentas nuevamente, el sistema evitara duplicados.");
       }
