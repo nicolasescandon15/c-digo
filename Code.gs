@@ -34,17 +34,13 @@ function doPost(e) {
         item.horaLlegada,
         resumen.estado,
         resumen.retraso,
-        new Date()
+        new Date(),
+        item.razonLlegadaTarde || ""
       ];
-    });
-
-    var razones = data.trabajadores.map(function (item) {
-      return [item.razonLlegadaTarde || ""];
     });
 
     sheet.getRange(startRow, 1, filas.length, filas[0].length).setValues(filas);
     sheet.getRange(startRow, 4, filas.length, 2).setNumberFormat("hh:mm");
-    sheet.getRange(startRow, 9, razones.length, 1).setValues(razones);
     marcarEnvioComoProcesado(data.envioId);
 
     return responderJson({
