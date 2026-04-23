@@ -609,7 +609,7 @@
   </div>
 
   <script>
-    const ENDPOINT = "https://script.google.com/macros/s/AKfycbxPzWTf0RPTISHw18A1xj1udqIKa4OlwvNUkUWBaG_xlHyxJ4nqK8P2uBXNItElj9lO/exec";
+    const ENDPOINT = "https://young-surf-d654.nicolasescandonmillan.workers.dev";
     const sugerenciasCache = new Map();
     const MINIMO_BUSQUEDA = 2;
     const MINUTOS_JUSTIFICACION_TARDE = 10;
@@ -1005,22 +1005,26 @@
     }
 
   async function enviarAsistencia(payload) {
-  try {
-    await fetch(ENDPOINT, {
-      method: "POST",
-      mode: "no-cors",
-      keepalive: true,
-      body: new URLSearchParams({
-        payload: JSON.stringify(payload)
-      })
-    });
+    try {
+      const response = await fetch(ENDPOINT, {
+        method: "POST",
+        body: new URLSearchParams({
+          payload: JSON.stringify(payload)
+        })
+      });
 
-    return { ok: true };
+      const data = await response.json();
 
-  } catch (error) {
-    throw new Error("No se pudo enviar. Verifica tu conexión.");
+      if (!data.ok) {
+        throw new Error(data.message || "Error en servidor");
+      }
+
+      return data;
+
+    } catch (error) {
+      throw new Error("No se pudo enviar. Verifica tu conexión.");
+    }
   }
-}
 
 
 async function enviarConReintento(payload, intentos = 2) {
