@@ -579,8 +579,9 @@
   <div class="modal-overlay" id="successModal" aria-hidden="true">
     <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
       <div class="success-modal-icon" aria-hidden="true">✓</div>
-      <h3 id="successModalTitle">Asistencia cargada correctamente</h3>
-      <p>La informacion fue enviada y registrada correctamente.</p>
+      <h3 id="successModalTitle">Asistencia enviada</h3>
+      <p>Puede tardar unos segundos en reflejarse. No cierre hasta que finalice.</p>
+
       <button class="primary-btn" id="cerrarModalBtn" type="button">Cerrar</button>
     </div>
   </div>
@@ -1008,6 +1009,7 @@
     await fetch(ENDPOINT, {
       method: "POST",
       mode: "no-cors",
+      keepalive: true,
       body: new URLSearchParams({
         payload: JSON.stringify(payload)
       })
@@ -1017,6 +1019,20 @@
 
   } catch (error) {
     throw new Error("No se pudo enviar. Verifica tu conexión.");
+  }
+}
+
+
+async function enviarConReintento(payload, intentos = 2) {
+  for (let i = 0; i < intentos; i++) {
+    try {
+      await enviarAsistencia(payload);
+      return;
+    } catch (e) {
+      if (i === intentos - 1) {
+        throw new Error("No se pudo enviar. Intenta nuevamente.");
+      }
+    }
   }
 }
 
@@ -1148,11 +1164,16 @@
         isSubmitting = true;
         enviarBtn.disabled = true;
         agregarFilaBtn.disabled = true;
-        enviarBtn.textContent = "Enviando...";
-        mostrarEstado("Enviando asistencia...", "");
+        enviarBtn.textContent = "Enviando...no cerrar";
+        mostrarEstado("Enviando asistencia...no cierres la página", "");
 
-        await enviarAsistencia(payload);
+        await enviarConReintento(payload);
+
+        // ⏳ pequeño delay realista
+        await new Promise(resolve => setTimeout(resolve, 1200));
+
         form.reset();
+
         fechaInput.value = obtenerFechaLocalActual();
         tablaTrabajadores.innerHTML = [
           '<div class="table-head">',
@@ -1165,6 +1186,8 @@
         envioIdPendiente = "";
         mostrarEstado("", "");
         abrirModalExito();
+
+
       } catch (error) {
         if (error.message) {
           mostrarEstado(error.message, "error");

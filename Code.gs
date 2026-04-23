@@ -446,3 +446,9 @@ function obtenerNombreHojaDisponible(spreadsheet, baseName) {
 
   return name;
 }
+
+function doOptions(e) {
+  return ContentService
+    .createTextOutput("")
+    .setMimeType(ContentService.MimeType.TEXT);
+}
